@@ -23,13 +23,15 @@ The instructions below offer basic usage for:
 
 1. If not already installed, install Python.
 
-2. Install the required Python packages on your Plex server:
+2. Press the Windows key + type CMD to open command prompt
+
+2. Install the required Python packages on your Plex server by typing the following in CMD:
 
     ```
     pip install requests pynput
     ```
 
-3. Set the Windows sleep timer to never – we don't want Windows to force a sleep during playback.
+3. Press the windows key and type 'Edit Power Plan' and set 'Put the computer to sleep' to never – we don't want Windows to force a sleep during playback.
 
 4. In Windows, navigate to the location of 'go-to-sleep.py' and create a shortcut; feel free to put it on the desktop.
 
