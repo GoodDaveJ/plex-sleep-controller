@@ -1,3 +1,9 @@
+"""
+Script Name: Plex Sleep Controller
+Description: Python script to monitor Plex activity and put the server to sleep when idle
+Author: David Joudrey
+Version: 1.1
+"""
 import subprocess
 import requests
 import xml.etree.ElementTree as ET
@@ -10,14 +16,26 @@ import configparser
 
 # Read configuration from config.ini
 config = configparser.ConfigParser()
-config.read('config.ini')
+config_file = 'config.ini'
+config.read(config_file)
 
 # Extract values from config
-server_ip = config['Settings']['serverIp']
-server_port = config['Settings']['serverPort']
-plex_token = config['Settings']['plexToken']
-sleep_timer_minutes = int(config['Settings']['sleepTimer'])
-SLEEP_TIMEOUT = sleep_timer_minutes * 60  # Convert minutes to seconds
+server_ip = config['Settings'].get('serverIp', '')
+server_port = config['Settings'].get('serverPort', '')
+plex_token = config['Settings'].get('plexToken', '')
+sleep_timer_minutes = config['Settings'].get('sleepTimer', '')
+SLEEP_TIMEOUT = int(sleep_timer_minutes) * 60 if sleep_timer_minutes.isdigit() else 15 * 60  # Convert minutes to seconds
+
+# Check for empty or unreadable variables
+if not all([server_ip, server_port, plex_token]):
+    missing_variables = [var for var, value in zip(['serverIp', 'serverPort', 'plexToken'], [server_ip, server_port, plex_token]) if not value]
+    print(f"Error: Missing or empty values for the following variables: {missing_variables}")
+    exit(1)
+
+# Check and set default value for sleepTimer
+if not sleep_timer_minutes or not sleep_timer_minutes.isdigit():
+    print("Warning: sleepTimer not defined or unreadable. Defaulting to 15 minutes.")
+    sleep_timer_minutes = 15
 
 # Construct PLEX_URL
 PLEX_URL = f"http://{server_ip}:{server_port}/status/sessions?X-Plex-Token={plex_token}"
@@ -37,7 +55,6 @@ class ActivityMonitor:
                 keyboard_listener.join()
             except Exception as e:
                 print(f"[{getTime()}] Error in activity listener: {e}")
-
 
 def getTime():
     current_datetime = datetime.now()
