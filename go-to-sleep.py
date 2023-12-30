@@ -90,6 +90,13 @@ def main():
     while True:
         active_sessions = check_active_sessions()
 
+        # Check if the machine went to sleep
+        if inactive_time >= SLEEP_TIMEOUT and not active_sessions:
+            print(f"[{getTime()}] 15 minutes of inactivity detected. Setting did_sleep to true.")
+            did_sleep = True
+            subprocess.run(["rundll32.exe", "powrprof.dll,SetSuspendState", "0", "1", "0"])
+            inactive_time = 0  # Reset the timer after initiating sleep
+
         if active_sessions or time.time() - activity_monitor.last_activity_time < 60:
             print(f"[{getTime()}] Active session(s) detected:")
             for session in active_sessions:
@@ -97,7 +104,6 @@ def main():
                     f"Title: {session['title']}, "
                     f"{'Artist: ' + session['artist'] + ', ' if 'artist' in session else ''}"
                     f"Machine: {session['player_title']}, "
-                   
                 )
 
             print("Resetting timer.")
@@ -113,12 +119,6 @@ def main():
 
         time.sleep(60)  # Sleep for 1 minute
         inactive_time += 60
-
-        # Check if the machine went to sleep
-        if inactive_time >= SLEEP_TIMEOUT and not active_sessions:
-            print(f"[{getTime()}] 15 minutes of inactivity detected. Setting did_sleep to true.")
-            did_sleep = True
-            subprocess.run(["rundll32.exe", "powrprof.dll,SetSuspendState", "0", "1", "0"])
 
 
 if __name__ == "__main__":
