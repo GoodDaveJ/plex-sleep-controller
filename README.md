@@ -18,6 +18,8 @@ The instructions below offer basic usage for:
 - Resets the system sleep timer if there is active Plex user activity.
 - Prevents the system from going to sleep during active sessions.
 - Customizable sleep timer.
+- 'Prime Time' hours. You can now set a time range where you do not want the server to sleep. Default 19:00 - 22:00
+- Script should now be compatable with linux and macOS - (untested)
 
 ## Usage
 
@@ -39,7 +41,7 @@ The instructions below offer basic usage for:
 
 6. Move the shortcut into the startup folder and then close this.
 
-7. Edit the `config.ini` file to add your server address (not tested remotely) as well as the port.
+7. Edit the `config.ini` file to add your server address (not tested remotely) as well as the port. Here you can also adjust the length of time and Prime Time hours.
 
 8. You will need to also add your Plex token. You can find this by viewing the info of any media item. This should load some XML data. The token is in the URL – there are plenty of detailed guides available for this.
 

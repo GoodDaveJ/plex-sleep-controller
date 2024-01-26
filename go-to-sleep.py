@@ -13,6 +13,8 @@ import threading
 from pynput import mouse, keyboard
 from datetime import datetime
 import configparser
+import subprocess
+import platform
 
 # Read configuration from config.ini
 config = configparser.ConfigParser()
@@ -24,6 +26,9 @@ server_ip = config['Settings'].get('serverIp', '')
 server_port = config['Settings'].get('serverPort', '')
 plex_token = config['Settings'].get('plexToken', '')
 sleep_timer_minutes = config['Settings'].get('sleepTimer', '')
+primeTimeStart = config['Settings'].get('primeTimeStart', '')
+primeTimeEnd = config['Settings'].get('primeTimeEnd', '')
+
 SLEEP_TIMEOUT = int(sleep_timer_minutes) * 60 if sleep_timer_minutes.isdigit() else 15 * 60  # Convert minutes to seconds
 
 # Check for empty or unreadable variables
@@ -55,6 +60,15 @@ class ActivityMonitor:
                 keyboard_listener.join()
             except Exception as e:
                 print(f"[{getTime()}] Error in activity listener: {e}")
+
+def checkPrimeTime():
+    current_time = datetime.now().time()
+    start_time = datetime.strptime(primeTimeStart, "%H:%M").time()
+    end_time = datetime.strptime(primeTimeEnd, "%H:%M").time()
+
+    return start_time <= current_time <= end_time
+
+
 
 def getTime():
     current_datetime = datetime.now()
@@ -94,6 +108,27 @@ def check_active_sessions():
 
     return active_sessions
 
+def printSessionData(active_sessions):
+    for session in active_sessions:
+        print(f"  - User: {session['user']}, Type: {session['type']}, "
+            f"Title: {session['title']}, "
+            f"{'Artist: ' + session['artist'] + ', ' if 'artist' in session else ''}"
+            f"Machine: {session['player_title']}, "
+        )
+
+def putToSleep():
+    system_platform = platform.system()
+
+    if system_platform == 'Windows':
+        subprocess.run(["rundll32.exe", "powrprof.dll,SetSuspendState", "0", "1", "0"])
+    elif system_platform == 'Linux':
+        subprocess.run(["systemctl", "suspend"])
+    elif system_platform == 'Darwin':  # MacOS
+        subprocess.run(["pmset", "sleepnow"])
+    else:
+        print(f"Sleep functionality not supported on {system_platform}.")
+
+
 
 def main():
     inactive_time = 0
@@ -102,29 +137,26 @@ def main():
 
     # Start the activity monitor in a separate thread
     activity_thread = threading.Thread(target=activity_monitor.start)
+    activity_thread.daemon = True
     activity_thread.start()
 
     while True:
         active_sessions = check_active_sessions()
+        isPrimeTime = checkPrimeTime()
 
+        if isPrimeTime:
+            print(f"[{getTime()}] It is currently prime time - do not sleep right now.")
         # Check if the machine went to sleep
         if inactive_time >= SLEEP_TIMEOUT and not active_sessions:
             print(f"[{getTime()}] 15 minutes of inactivity detected. Setting did_sleep to true.")
             did_sleep = True
-            subprocess.run(["rundll32.exe", "powrprof.dll,SetSuspendState", "0", "1", "0"])
-            inactive_time = 0  # Reset the timer after initiating sleep
+            putToSleep()
 
         if active_sessions or time.time() - activity_monitor.last_activity_time < 60:
             print(f"[{getTime()}] Active session(s) detected:")
-            for session in active_sessions:
-                print(f"  - User: {session['user']}, Type: {session['type']}, "
-                    f"Title: {session['title']}, "
-                    f"{'Artist: ' + session['artist'] + ', ' if 'artist' in session else ''}"
-                    f"Machine: {session['player_title']}, "
-                )
-
-            print("Resetting timer.")
+            printSessionData(active_sessions)
             inactive_time = 0  # Reset the timer
+            print("Sleep timer reset")
         else:
             print(f"[{getTime()}] No active sessions and no activity. Inactive for {inactive_time} seconds.")
 
