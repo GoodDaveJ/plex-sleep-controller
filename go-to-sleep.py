@@ -146,25 +146,26 @@ def main():
 
         if isPrimeTime:
             print(f"[{getTime()}] It is currently prime time - do not sleep right now.")
-        # Check if the machine went to sleep
-        if inactive_time >= SLEEP_TIMEOUT and not active_sessions:
-            print(f"[{getTime()}] 15 minutes of inactivity detected. Setting did_sleep to true.")
-            did_sleep = True
-            putToSleep()
-
-        if active_sessions or time.time() - activity_monitor.last_activity_time < 60:
-            print(f"[{getTime()}] Active session(s) detected:")
-            printSessionData(active_sessions)
-            inactive_time = 0  # Reset the timer
-            print("Sleep timer reset")
         else:
-            print(f"[{getTime()}] No active sessions and no activity. Inactive for {inactive_time} seconds.")
+            # Check if the machine went to sleep
+            if inactive_time >= SLEEP_TIMEOUT and not active_sessions:
+                print(f"[{getTime()}] 15 minutes of inactivity detected. Setting did_sleep to true.")
+                did_sleep = True
+                putToSleep()
 
-        # Check for the did_sleep flag
-        if did_sleep:
-            print(f"[{getTime()}] Machine woke up. Resetting timers.")
-            did_sleep = False
-            inactive_time = 0
+            if active_sessions or time.time() - activity_monitor.last_activity_time < 60:
+                print(f"[{getTime()}] Active session(s) detected:")
+                printSessionData(active_sessions)
+                inactive_time = 0  # Reset the timer
+                print("Sleep timer reset")
+            else:
+                print(f"[{getTime()}] No active sessions and no activity. Inactive for {inactive_time} seconds.")
+
+            # Check for the did_sleep flag
+            if did_sleep:
+                print(f"[{getTime()}] Machine woke up. Resetting timers.")
+                did_sleep = False
+                inactive_time = 0
 
         time.sleep(60)  # Sleep for 1 minute
         inactive_time += 60
