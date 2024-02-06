@@ -19,9 +19,11 @@ The instructions below offer basic usage for:
 - Prevents the system from going to sleep during active sessions.
 - Customizable sleep timer.
 - 'Prime Time' hours. You can now set a time range where you do not want the server to sleep. Default 19:00 - 22:00
-- Script should now be compatable with linux and macOS - (untested)
+- Script should now be compatible with linux and macOS - (untested)
 
 ## Usage
+
+*Please Note - the below steps are based on a Windows machine. For Linux & MacOs there will be similar steps but not explicitly stated as this has not been tested - but should be supported. 
 
 1. If not already installed, install Python.
 
@@ -32,7 +34,6 @@ The instructions below offer basic usage for:
     ```
     pip install requests pynput
     ```
-
 3. Press the windows key and type 'Edit Power Plan' and set 'Put the computer to sleep' to never – we don't want Windows to force a sleep during playback.
 
 4. In Windows, navigate to the location of 'go-to-sleep.py' and create a shortcut; feel free to put it on the desktop.
