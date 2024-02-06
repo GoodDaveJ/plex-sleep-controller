@@ -106,6 +106,18 @@ def check_active_sessions():
         }
         active_sessions.append(session_info)
 
+    for track_node in tree.findall(".//Photo"):
+        user_node = track_node.find(".//User")
+        player_node = track_node.find(".//Player")
+
+        session_info = {
+            "user": user_node.get("title") if user_node is not None else "Unknown User",
+            "title": track_node.get("title"),
+            "type": "Photo",
+            "player_title": player_node.get("title") if player_node is not None else "Unknown Player",
+        }
+        active_sessions.append(session_info)
+
     return active_sessions
 
 def printSessionData(active_sessions):
