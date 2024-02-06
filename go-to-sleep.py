@@ -2,7 +2,7 @@
 Script Name: Plex Sleep Controller
 Description: Python script to monitor Plex activity and put the server to sleep when idle
 Author: David Joudrey
-Version: 1.1
+Version: 1.3
 """
 import subprocess
 import requests
@@ -13,7 +13,6 @@ import threading
 from pynput import mouse, keyboard
 from datetime import datetime
 import configparser
-import subprocess
 import platform
 
 # Read configuration from config.ini
@@ -29,7 +28,9 @@ sleep_timer_minutes = config['Settings'].get('sleepTimer', '')
 primeTimeStart = config['Settings'].get('primeTimeStart', '')
 primeTimeEnd = config['Settings'].get('primeTimeEnd', '')
 
-SLEEP_TIMEOUT = int(sleep_timer_minutes) * 60 if sleep_timer_minutes.isdigit() else 15 * 60  # Convert minutes to seconds
+minute = 60
+
+SLEEP_TIMEOUT = int(sleep_timer_minutes) * minute if sleep_timer_minutes.isdigit() else 15 * minute  # Convert minutes to seconds
 
 # Check for empty or unreadable variables
 if not all([server_ip, server_port, plex_token]):
@@ -68,17 +69,25 @@ def checkPrimeTime():
 
     return start_time <= current_time <= end_time
 
-
-
 def getTime():
     current_datetime = datetime.now()
     timestamp = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
     return timestamp
 
-
 def check_active_sessions():
-    response = requests.get(PLEX_URL)
-    tree = ET.fromstring(response.text)
+    try:
+        response = requests.get(PLEX_URL)
+        response.raise_for_status()  # Raise an exception for 4xx or 5xx status codes
+    except requests.exceptions.RequestException as e:
+        print(f"Error in network request: {e}")
+        return []  # Return an empty list in case of error
+
+    try:
+        tree = ET.fromstring(response.text)
+    except ET.ParseError as e:
+        print(f"Error in XML parsing: {e}")
+        return []  # Return an empty list if XML parsing fails
+
     active_sessions = []
 
     for video_node in tree.findall(".//Video"):
@@ -106,13 +115,13 @@ def check_active_sessions():
         }
         active_sessions.append(session_info)
 
-    for track_node in tree.findall(".//Photo"):
-        user_node = track_node.find(".//User")
-        player_node = track_node.find(".//Player")
+    for photo_node in tree.findall(".//Photo"):
+        user_node = photo_node.find(".//User")
+        player_node = photo_node.find(".//Player")
 
         session_info = {
             "user": user_node.get("title") if user_node is not None else "Unknown User",
-            "title": track_node.get("title"),
+            "title": photo_node.get("title"),
             "type": "Photo",
             "player_title": player_node.get("title") if player_node is not None else "Unknown Player",
         }
@@ -140,8 +149,6 @@ def putToSleep():
     else:
         print(f"Sleep functionality not supported on {system_platform}.")
 
-
-
 def main():
     inactive_time = 0
     activity_monitor = ActivityMonitor()
@@ -154,9 +161,8 @@ def main():
 
     while True:
         active_sessions = check_active_sessions()
-        isPrimeTime = checkPrimeTime()
 
-        if isPrimeTime:
+        if checkPrimeTime():
             print(f"[{getTime()}] It is currently prime time - do not sleep right now.")
         else:
             # Check if the machine went to sleep
@@ -165,7 +171,7 @@ def main():
                 did_sleep = True
                 putToSleep()
 
-            if active_sessions or time.time() - activity_monitor.last_activity_time < 60:
+            if active_sessions or time.time() - activity_monitor.last_activity_time < minute:
                 print(f"[{getTime()}] Active session(s) detected:")
                 printSessionData(active_sessions)
                 inactive_time = 0  # Reset the timer
@@ -179,9 +185,9 @@ def main():
                 did_sleep = False
                 inactive_time = 0
 
-        time.sleep(60)  # Sleep for 1 minute
-        inactive_time += 60
-
+        #using sleep.time rather than threading.Event.wait() to ensure hard 60 second check
+        time.sleep(minute)
+        inactive_time += minute
 
 if __name__ == "__main__":
     main()
