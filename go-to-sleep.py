@@ -10,10 +10,15 @@ import xml.etree.ElementTree as ET
 import time
 import os
 import threading
-from pynput import mouse, keyboard
 from datetime import datetime
 import configparser
 import platform
+
+# Check if running in a graphical environment
+is_graphical = os.environ.get('DISPLAY') is not None
+
+if is_graphical:
+    from pynput import mouse, keyboard
 
 # Read configuration from config.ini
 config = configparser.ConfigParser()
@@ -54,13 +59,14 @@ class ActivityMonitor:
         self.last_activity_time = time.time()
 
     def start(self):
-        with mouse.Listener(on_move=self.on_activity, on_click=self.on_activity) as mouse_listener, \
-             keyboard.Listener(on_press=self.on_activity) as keyboard_listener:
-            try:
-                mouse_listener.join()
-                keyboard_listener.join()
-            except Exception as e:
-                print(f"[{getTime()}] Error in activity listener: {e}")
+        if is_graphical:
+            with mouse.Listener(on_move=self.on_activity, on_click=self.on_activity) as mouse_listener, \
+                 keyboard.Listener(on_press=self.on_activity) as keyboard_listener:
+                try:
+                    mouse_listener.join()
+                    keyboard_listener.join()
+                except Exception as e:
+                    print(f"[{getTime()}] Error in activity listener: {e}")
 
 def checkPrimeTime():
     current_time = datetime.now().time()
@@ -79,55 +85,15 @@ def check_active_sessions():
         response = requests.get(PLEX_URL)
         response.raise_for_status()  # Raise an exception for 4xx or 5xx status codes
     except requests.exceptions.RequestException as e:
-        print(f"Error in network request: {e}")
-        return []  # Return an empty list in case of error
+        print(f"[{getTime()}] Error checking active sessions: {e}")
+        return False
 
     try:
-        tree = ET.fromstring(response.text)
+        root = ET.fromstring(response.content)
+        return len(root.findall('.//Video')) > 0
     except ET.ParseError as e:
-        print(f"Error in XML parsing: {e}")
-        return []  # Return an empty list if XML parsing fails
-
-    active_sessions = []
-
-    for video_node in tree.findall(".//Video"):
-        user_node = video_node.find(".//User")
-        player_node = video_node.find(".//Player")
-
-        session_info = {
-            "user": user_node.get("title") if user_node is not None else "Unknown User",
-            "title": video_node.get("title"),
-            "type": "Video",
-            "player_title": player_node.get("title") if player_node is not None else "Unknown Player",
-        }
-        active_sessions.append(session_info)
-
-    for track_node in tree.findall(".//Track"):
-        user_node = track_node.find(".//User")
-        player_node = track_node.find(".//Player")
-
-        session_info = {
-            "user": user_node.get("title") if user_node is not None else "Unknown User",
-            "title": track_node.get("title"),
-            "type": "Track",
-            "player_title": player_node.get("title") if player_node is not None else "Unknown Player",
-            "artist": track_node.get("grandparentTitle") if track_node is not None else "Unknown Artist",
-        }
-        active_sessions.append(session_info)
-
-    for photo_node in tree.findall(".//Photo"):
-        user_node = photo_node.find(".//User")
-        player_node = photo_node.find(".//Player")
-
-        session_info = {
-            "user": user_node.get("title") if user_node is not None else "Unknown User",
-            "title": photo_node.get("title"),
-            "type": "Photo",
-            "player_title": player_node.get("title") if player_node is not None else "Unknown Player",
-        }
-        active_sessions.append(session_info)
-
-    return active_sessions
+        print(f"[{getTime()}] Error parsing XML response: {e}")
+        return False
 
 def printSessionData(active_sessions):
     for session in active_sessions:
@@ -155,9 +121,10 @@ def main():
     did_sleep = False  # Variable to track if the machine went to sleep
 
     # Start the activity monitor in a separate thread
-    activity_thread = threading.Thread(target=activity_monitor.start)
-    activity_thread.daemon = True
-    activity_thread.start()
+    if is_graphical:
+        activity_thread = threading.Thread(target=activity_monitor.start)
+        activity_thread.daemon = True
+        activity_thread.start()
 
     while True:
         active_sessions = check_active_sessions()
