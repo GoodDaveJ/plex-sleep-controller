@@ -2,6 +2,10 @@
 
 Python script to monitor Plex activity and put the server to sleep when idle.
 
+## PLEASE NOTE: Ending Windows Support
+Due to Microsfts intent to force features on users (namely intergrated AI) I will not be supporting Windows going forward. I will be updating the installation for debian based systems in the near future, but I need to check stability on my server before rolling this out. 
+This doesn't mean I will remove support entirely, but I will not be testing for Windows or Mac. I will also not take them into consideration when adding new features.
+
 ## Description
 
 Save money and save the planet! This Python script checks Plex server activity via the Plex server API and tracks mouse/keyboard activity. When the server is idle, a sleep timer is initiated based on the config settings. At the end of the timer, the machine is put to sleep. This is designed for Plex server owners who do not want their server running 24/7 for environmental or financial reasons.
